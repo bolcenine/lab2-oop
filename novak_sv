@@ -1,0 +1,97 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using CsvHelper;
+
+class Smartphone
+{
+    public string Model { get; set; }
+    public string Manufacturer { get; set; }
+    public int Year { get; set; }
+    public double Price { get; set; }
+    public string Category { get; set; }
+    public int BatteryCapacity { get; set; }
+    public string OS { get; set; }
+}
+
+class Program
+{
+    static void Main()
+    {
+        List<Smartphone> smartphones;
+
+        // Завантаження та обробка даних з файлу CSV
+        using (var reader = new StreamReader("phones_data.csv"))
+        using (var csv = new CsvReader(reader))
+        {
+            smartphones = csv.GetRecords<Smartphone>().ToList();
+        }
+
+        // 1. Визначення 10 найбільш дорогих смартфонів у 2020 році за категорією "best price"
+        var top10Expensive2020 = smartphones
+            .Where(s => s.Year == 2020 && s.Category == "best price")
+            .OrderByDescending(s => s.Price)
+            .Take(10)
+            .ToList();
+
+        Console.WriteLine("1. 10 найбільш дорогих смартфонів у 2020 році за категорією 'best price':");
+        foreach (var phone in top10Expensive2020)
+        {
+            Console.WriteLine($"{phone.Manufacturer} {phone.Model}: {phone.Price}");
+        }
+
+        // 2. Перевірка, чи найбільший дорогий смартфон виробника Prestigio коштує менше, ніж найдешевший смартфон від Apple
+        var mostExpensivePrestigio = smartphones
+            .Where(s => s.Manufacturer == "Prestigio")
+            .OrderByDescending(s => s.Price)
+            .FirstOrDefault();
+
+        var cheapestApple = smartphones
+            .Where(s => s.Manufacturer == "Apple")
+            .OrderBy(s => s.Price)
+            .FirstOrDefault();
+
+        bool isPrestigioCheaperThanApple = mostExpensivePrestigio?.Price < cheapestApple?.Price;
+
+        Console.WriteLine($"2. Найбільший дорогий смартфон виробника Prestigio коштує менше, ніж найдешевший смартфон від Apple: {isPrestigioCheaperThanApple}");
+
+        // 3. Побудова стовпчикової діаграми розподілу кількості смартфонів на ринку в залежності від виробника
+        var manufacturerCounts = smartphones
+            .GroupBy(s => s.Manufacturer)
+            .Select(group => new { Manufacturer = group.Key, Count = group.Count() })
+            .OrderByDescending(item => item.Count)
+            .ToList();
+
+        Console.WriteLine("3. Стовпчикова діаграма розподілу кількості смартфонів на ринку в залежності від виробника:");
+        foreach (var item in manufacturerCounts)
+        {
+            Console.WriteLine($"{item.Manufacturer}: {item.Count}");
+        }
+
+        // 4. Визначення, як змінювалась ємність акумулятора смартфонів від Samsung (з ціною вище 15 тис. грн) за період з 2015 по 2023 рік
+        var samsungBatteryCapacityChanges = smartphones
+            .Where(s => s.Manufacturer == "Samsung" && s.Price > 15000 && s.Year >= 2015 && s.Year <= 2023)
+            .OrderBy(s => s.Year)
+            .Select(s => new { Year = s.Year, BatteryCapacity = s.BatteryCapacity })
+            .ToList();
+
+        Console.WriteLine("4. Зміни ємності акумулятора смартфонів Samsung:");
+        foreach (var item in samsungBatteryCapacityChanges)
+        {
+            Console.WriteLine($"{item.Year}: {item.BatteryCapacity}");
+        }
+
+        // 5. Порівняння середньої популярності смартфонів на базі Android та iOS за період з 2015 по 2023 рік
+        var androidPopularity = smartphones
+            .Where(s => s.OS == "Android" && s.Year >= 2015 && s.Year <= 2023)
+            .Average(s => s.Price);
+
+        var iosPopularity = smartphones
+            .Where(s => s.OS == "iOS" && s.Year >= 2015 && s.Year <= 2023)
+            .Average(s => s.Price);
+
+        Console.WriteLine($"5. Середня популярність смартфонів на базі Android: {androidPopularity}");
+        Console.WriteLine($"   Середня популярність смартфонів на базі iOS: {iosPopularity}");
+    }
+}
